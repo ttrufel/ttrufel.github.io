@@ -180,7 +180,7 @@ select{background-image:linear-gradient(45deg,transparent 50%,var(--ink) 50%),li
 select option{background:var(--paper);color:var(--ink)}
 input:focus,select:focus,textarea:focus{outline:none;border-color:var(--red)}
 textarea{border:1.5px solid var(--line);padding:10px;font-family:var(--f-mono);font-size:12px;min-height:90px}
-.two{display:grid;grid-template-columns:1fr 92px;gap:16px}
+.two{display:grid;grid-template-columns:1fr 84px;gap:16px}
 .two.eq{grid-template-columns:1fr 1fr}
 .primary{background:var(--red);color:var(--on-red);border:0;padding:15px 16px;font-weight:700;font-size:16px;display:flex;justify-content:space-between;align-items:center;gap:12px;transition:background .2s var(--ease)}
 .primary:active{background:var(--ink);color:var(--paper)}
@@ -281,6 +281,11 @@ form{display:flex;flex-direction:column;gap:18px}
 .sheet:not([hidden])~.toast{top:calc(12px + env(safe-area-inset-top,0px));bottom:auto}
 .toast button{background:none;border:0;color:var(--red-text);font-weight:700;padding:0;flex:none}
 
+.stepper{display:flex;align-items:stretch}
+.stepper input{flex:1;min-width:0;text-align:center}
+.stp{flex:none;width:44px;background:none;border:0;border-bottom:1.5px solid var(--line);font-size:22px;font-weight:400;line-height:1;color:var(--ink)}
+.stp:active{background:var(--ink);color:var(--paper)}
+.fld>label.micro{display:block}
 /* Поле даты ДД.ММ.ГГГГ */
 .drow{display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap}
 .dchips{display:flex;flex:none}
@@ -329,7 +334,7 @@ form{display:flex;flex-direction:column;gap:18px}
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script>
-const KEY='holodilnik-koshelek-v1',APP_VERSION='6';
+const KEY='holodilnik-koshelek-v1',APP_VERSION='7';
 let storageOk=true;
 function load(){try{const r=localStorage.getItem(KEY);return r?JSON.parse(r):null}catch(e){storageOk=false;return null}}
 function save(){try{localStorage.setItem(KEY,JSON.stringify(S));storageOk=true}catch(e){storageOk=false}}
@@ -681,14 +686,14 @@ function qpHTML(q){q=low_(q);qpItems=[];
 function refreshQP(q){const box=$('qp_box');if(box)box.innerHTML=qpHTML(q==null?'':q);syncFavBox()}
 function syncFavBox(){const box=$('f_favbox');if(!box)return;const n=$('f_name').value.trim();box.hidden=!n||!!favByName(n);
   if(!box.hidden)$('f_favlbl').textContent=`Добавить «${n}» в быстрый выбор`;$('f_favcats').hidden=!$('f_fav').checked}
-function chipsFor(b){const r=rem(b,eatenMap());const ps=b.unit==='шт'?[1,2,3]:b.unit==='мл'?[100,200,250,500]:[50,100,200,300];
+function chipsFor(b){const r=rem(b,eatenMap());const ps=b.unit==='шт'?[0.5,1,2,3]:b.unit==='мл'?[100,200,250,500]:[50,100,200,300];
   return ps.filter(p=>p<r).map(p=>`<button type="button" class="sbtn" data-setq="${p}">${qty(p,b.unit)}</button>`).join('')+`<button type="button" class="sbtn" data-fill="half">Половину</button><button type="button" class="sbtn main" data-fill="all">Всё (${qty(r,b.unit)})</button>`}
 function renderSheet(){const t=today();const head=`<div class="sheet-h"><span class="micro">Новая запись</span><button type="button" class="x" data-act="close">Закрыть ×</button></div><div class="seg">${[['buy','Купил'],['eat','Съел'],['spend','Расход'],['income','Доход']].map(([k,l])=>`<button type="button" data-seg="${k}" aria-pressed="${sheetMode===k}">${l}</button>`).join('')}</div>`;
   let f='';
   if(sheetMode==='buy'){const defG=qpTab&&groupOf(qpTab)?qpTab:'';
     f=`<form id="frm"><label class="fld"><span class="micro">Что купил</span><input id="f_name" autocomplete="off" placeholder="Найти или написать новое" maxlength="60" enterkeyhint="next"></label>
     <div id="qp_box">${qpHTML('')}</div>
-    <div class="two"><label class="fld"><span class="micro">Сколько</span><input id="f_qty" inputmode="decimal" placeholder="1"></label>
+    <div class="two"><div class="fld"><label class="micro" for="f_qty">Сколько</label><div class="stepper"><button type="button" class="stp" data-step="-1" data-for="f_qty" aria-label="Меньше">−</button><input id="f_qty" inputmode="decimal" placeholder="1"><button type="button" class="stp" data-step="1" data-for="f_qty" aria-label="Больше">+</button></div></div>
     <label class="fld"><span class="micro">Ед.</span>${unitSel('f_unit','шт')}</label></div>
     <label class="fld"><span class="micro">Цена за всё, ₸</span><input id="f_price" inputmode="decimal" placeholder="Сколько заплатил"></label>
     <p class="hint" id="f_hint"></p>
@@ -706,9 +711,11 @@ function renderSheet(){const t=today();const head=`<div class="sheet-h"><span cl
       const sel=pre.batch&&shown.find(b=>b.id===pre.batch)?pre.batch:shown[0].id;const sb=batch(sel);const lq=eatAct==='eat'?lastQty(sb.name):null;
       f=`<form id="frm"><fieldset class="stack"><span class="micro">Что сделал</span><div class="seg s3">${EACTS.map(([k,l])=>`<button type="button" data-eact="${k}" aria-pressed="${eatAct===k}">${l}</button>`).join('')}</div></fieldset>${gs.length>1?`<div class="qp-tabs"><button type="button" data-eattab="all" aria-pressed="${eatTab==='all'}">Все</button>${gs.map(g=>`<button type="button" data-eattab="${g.id}" aria-pressed="${eatTab===g.id}">${esc(g.name)}</button>`).join('')}</div>`:''}
       <fieldset><span class="micro"><span id="f_eatlbl">${EACTL[eatAct]}</span> · ${av.length} в запасе</span>${av.length>6?`<input id="f_esearch" class="srch" placeholder="Найти в запасах" autocomplete="off">`:''}<div class="sp-list">${shown.map(b=>`<label class="sp" data-n="${esc(low_(b.name))}"><input type="radio" name="batch" value="${b.id}" ${b.id===sel?'checked':''}><span class="sp-b"><b>${esc(b.name)}</b><span>${qty(rem(b,m),b.unit)}${av.filter(x=>low_(x.name)===low_(b.name)).length>1?' · от '+dLong(b.date):''}</span></span></label>`).join('')}</div></fieldset>
-      <div class="two"><label class="fld"><span class="micro">Сколько</span><input id="f_eqty" inputmode="decimal" placeholder="300" value="${lq&&lq<=rem(sb,m)?lq:''}"></label><label class="fld"><span class="micro">Ед.</span><input id="f_eunit" readonly tabindex="-1"></label></div>
+      <div class="two"><div class="fld"><label class="micro" for="f_eqty">Сколько</label><div class="stepper"><button type="button" class="stp" data-step="-1" data-for="f_eqty" aria-label="Меньше">−</button><input id="f_eqty" inputmode="decimal" placeholder="${sb.unit==='шт'?'1':'300'}" value="${lq&&lq<=rem(sb,m)?lq:''}"><button type="button" class="stp" data-step="1" data-for="f_eqty" aria-label="Больше">+</button></div></div><label class="fld"><span class="micro">Ед.</span><input id="f_eunit" readonly tabindex="-1"></label></div>
       <div class="chipsrow" id="f_chips">${chipsFor(sb)}</div>
-      <label class="fld" id="f_sellbox" ${eatAct==='sell'?'':'hidden'}><span class="micro">Получил за это, ₸</span><input id="f_sell" inputmode="decimal" placeholder="Сколько заплатили"></label>
+      <div id="f_sellbox" class="stack" ${eatAct==='sell'?'':'hidden'}><div class="two eq"><label class="fld"><span class="micro" id="f_perlbl">Цена за ${perWord(sb.unit)}, ₸</span><input id="f_sellper" inputmode="decimal"></label>
+        <label class="fld"><span class="micro">Получу всего, ₸</span><input id="f_sell" inputmode="decimal" placeholder="0"></label></div>
+        <div class="chipsrow"><button type="button" class="sbtn main" data-sellrate="1">По цене покупки</button><button type="button" class="sbtn" data-sellrate="1.1">+10%</button><button type="button" class="sbtn" data-sellrate="1.2">+20%</button></div></div>
       ${dateField('f_edate',t,{max:t})}
       <p class="hint" id="f_hint"></p><p class="err" id="f_err" hidden></p>${SAVE}
       <button type="button" class="linkbtn" data-act="eat-now">Не из запасов? Купил и сразу съел →</button></form>`}}
@@ -725,15 +732,23 @@ function renderSheet(){const t=today();const head=`<div class="sheet-h"><span cl
     ${dateField('f_idate',t)}
     <p class="hint">Доход попадёт в бюджет того месяца, на дату которого записан.</p>
     <p class="err" id="f_err" hidden></p>${SAVE}</form>`}
-  sheetIn.innerHTML=head+f;if(sheetMode==='eat')syncEat();if(sheetMode==='buy')syncBuy();}
+  sheetIn.innerHTML=head+f;if(sheetMode==='eat'){if(eatAct==='sell')initSell();syncEat()}if(sheetMode==='buy')syncBuy();}
 
 function errMsg(m){const e=$('f_err');if(e){e.textContent=m;e.hidden=!m}}
+const perFactor=u=>u==='г'||u==='мл'?1000:1,perWord=u=>u==='г'?'кг':u==='мл'?'л':'шт';
+const STEPS={buy:{кг:0.1,г:100,шт:1,л:0.5,мл:100},eat:{г:50,мл:50,шт:0.5}};
+// Калькулятор продажи: цена за кг/шт × количество = сумма, и обратно
+function initSell(rate=1){const b=selBatch();if(!b||!$('f_sellper'))return;$('f_perlbl').textContent=`Цена за ${perWord(b.unit)}, ₸`;$('f_sellper').value=Math.round(unitPrice(b)*perFactor(b.unit)*rate);
+  document.querySelectorAll('[data-sellrate]').forEach(x=>x.classList.toggle('main',+x.dataset.sellrate===rate));calcSell()}
+function calcSell(){const b=selBatch();if(!b||!$('f_sell'))return;const q=num($('f_eqty').value),p=num($('f_sellper').value);$('f_sell').value=q>0&&p>=0?Math.round(q*p/perFactor(b.unit)):''}
+function calcPer(){const b=selBatch();if(!b)return;const q=num($('f_eqty').value),a=num($('f_sell').value);if(q>0&&a>=0)$('f_sellper').value=Math.round(a/q*perFactor(b.unit));document.querySelectorAll('[data-sellrate]').forEach(x=>x.classList.remove('main'))}
+function onEatQty(){if(eatAct==='sell')calcSell();syncEat();errMsg('')}
 const EACTS=[['eat','Съел'],['waste','Выбросил'],['sell','Продал']],EACTL={eat:'Что съел',waste:'Что выбросил',sell:'Что продал'};
 const selBatch=()=>{const r=document.querySelector('input[name="batch"]:checked');return r?batch(r.value):null};
 function syncEat(){const b=selBatch();if(!b)return;const r=rem(b,eatenMap());
   $('f_eunit').value=b.unit;const q=num($('f_eqty').value);const lq=lastQty(b.name);
   if(eatAct==='sell'){const a=num($('f_sell').value),cost=q>0?q*unitPrice(b):0;
-    $('f_hint').textContent=q>0?[`покупал за ≈ ${money(cost)}`,a>=0?(a-cost>=0?'выгода +':'в минус −')+money(Math.abs(a-cost)):'','останется '+qty(Math.max(0,r-q),b.unit)].filter(Boolean).join(' · '):`Осталось ${qty(r,b.unit)}, покупал по ${perUnit(b)}`;return}
+    $('f_hint').textContent=q>0?[`покупал за ≈ ${money(cost)}`,a>=0?(Math.abs(a-cost)<1?'по цене покупки':(a-cost>0?'выгода +':'в минус −')+money(Math.abs(a-cost))):'','останется '+qty(Math.max(0,r-q),b.unit)].filter(Boolean).join(' · '):`Осталось ${qty(r,b.unit)}, покупал по ${perUnit(b)}`;return}
   $('f_hint').textContent=q>0?`≈ ${money(q*unitPrice(b))} · останется ${qty(Math.max(0,r-q),b.unit)}${eatAct==='eat'&&lq&&q===lq?' · как в прошлый раз':''}`:`Осталось ${qty(r,b.unit)}, ${perUnit(b)}`}
 function syncBuy(){const h=$('f_hint');if(!h)return;const q=num($('f_qty').value),p=num($('f_price').value),u=$('f_unit').value;
   let t='';if(q>0&&p>0){const per=u==='кг'||u==='л'||u==='шт'?p/q:p/q*1000;t='≈ '+money(per)+(u==='шт'?'/шт':u==='г'||u==='кг'?'/кг':'/л')}
@@ -790,14 +805,18 @@ document.addEventListener('click',ev=>{const el=ev.target.closest('button');if(!
   if(d.tab){if(tab!==d.tab){tab=d.tab;animateNext=true}render();try{window.scrollTo(0,0)}catch(e){}return}
   if(d.open){openSheet(d.open,{batch:d.batch});return}
   if(d.seg){sheetMode=d.seg;pre={};eatAct='eat';renderSheet();return}
-  if(d.eact){eatAct=d.eact;document.querySelectorAll('[data-eact]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.eact===eatAct)));$('f_sellbox').hidden=eatAct!=='sell';$('f_eatlbl').textContent=EACTL[eatAct];
-    if(eatAct!=='eat'&&$('f_eqty').value&&+$('f_eqty').value===lastQty((selBatch()||{}).name))$('f_eqty').value='';syncEat();errMsg('');(eatAct==='sell'&&$('f_eqty').value?$('f_sell'):$('f_eqty')).focus();return}
+  if(d.eact){eatAct=d.eact;document.querySelectorAll('[data-eact]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.eact===eatAct)));$('f_sellbox').hidden=eatAct!=='sell';$('f_eatlbl').textContent=EACTL[eatAct];if(eatAct==='sell')initSell();
+    if(eatAct!=='eat'&&$('f_eqty').value&&+$('f_eqty').value===lastQty((selBatch()||{}).name))$('f_eqty').value='';syncEat();errMsg('');$('f_eqty').focus();return}
+  if(d.sellrate){initSell(+d.sellrate);syncEat();return}
+  if(d.step){const inp=$(d.for);if(!inp)return;const isBuy=d.for==='f_qty',u=isBuy?$('f_unit').value:(selBatch()||{}).unit,st=STEPS[isBuy?'buy':'eat'][u]||1;
+    let v=num(inp.value);if(!(v>0))v=0;v=+(Math.round((v+(+d.step)*st)/st)*st).toFixed(3);if(v<=0)v=st;
+    if(!isBuy){const b=selBatch(),r=b?rem(b,eatenMap()):Infinity;if(v>r)v=r}inp.value=v;isBuy?(syncBuy(),errMsg('')):onEatQty();return}
   if(d.qptab){qpTab=d.qptab;refreshQP('');const g=groupOf(qpTab)?qpTab:'';const r=document.querySelector(`input[name="fgrp"][value="${g}"]`);if(r)r.checked=true;return}
   if(d.qp!=null){const it=qpItems[+d.qp];if(!it)return;document.querySelectorAll('.qp-grid button.on').forEach(b=>b.classList.remove('on'));el.classList.add('on');fillBuy(it);return}
   if(d.dset){const[id,n]=d.dset.split(':');$(id).value=addDays(today(),+n);syncDate(id);return}
   if(d.eattab){eatTab=d.eattab;pre.batch=null;renderSheet();return}
-  if(d.setq){$('f_eqty').value=d.setq;syncEat();errMsg('');return}
-  if(d.fill){const b=selBatch();if(!b)return;const r=rem(b,eatenMap());$('f_eqty').value=+(d.fill==='all'?r:r/2).toFixed(2);syncEat();errMsg('');return}
+  if(d.setq){$('f_eqty').value=d.setq;onEatQty();return}
+  if(d.fill){const b=selBatch();if(!b)return;const r=rem(b,eatenMap());$('f_eqty').value=+(d.fill==='all'?r:r/2).toFixed(3);onEatQty();return}
   if(d.smode){statMode=d.smode;animateNext=true;render();return}
   if(d.sview){statView=d.sview;animateNext=true;render();return}
   if(d.toshop!=null){addShop(d.toshop);return}
@@ -848,12 +867,14 @@ document.addEventListener('submit',ev=>{ev.preventDefault();const f=ev.target;
     save();render();try{$('s_fname').focus()}catch(e){}
     toast(added?`Добавлено: ${added===1?names.find(n=>!skip.includes(n)):added+' '+plural(added,'продукт','продукта','продуктов')}${skip.length?' · уже были: '+skip.join(', '):''}`:'Уже есть в быстром выборе')}});
 document.addEventListener('input',ev=>{const id=ev.target.id;
-  if(id==='f_eqty'||id==='f_sell'){syncEat();errMsg('')}
+  if(id==='f_eqty')onEatQty();
+  else if(id==='f_sellper'){calcSell();document.querySelectorAll('[data-sellrate]').forEach(x=>x.classList.remove('main'));syncEat();errMsg('')}
+  else if(id==='f_sell'){calcPer();syncEat();errMsg('')}
   else if(id==='f_qty'||id==='f_price'){syncBuy();errMsg('')}
   else if(id==='f_name'){errMsg('');lastInfo='';refreshQP(ev.target.value);syncBuy()}
   else if(id==='f_esearch'){const q=low_(ev.target.value);document.querySelectorAll('.sp-list .sp').forEach(l=>l.hidden=!!q&&!l.dataset.n.includes(q))}});
 document.addEventListener('change',ev=>{const t=ev.target,id=t.id;
-  if(t.name==='batch'){const b=selBatch();const lq=eatAct==='eat'?lastQty(b.name):null,r=rem(b,eatenMap());$('f_eqty').value=lq&&lq<=r?lq:'';$('f_chips').innerHTML=chipsFor(b);syncEat()}
+  if(t.name==='batch'){const b=selBatch();const lq=eatAct==='eat'?lastQty(b.name):null,r=rem(b,eatenMap());$('f_eqty').value=lq&&lq<=r?lq:'';$('f_chips').innerHTML=chipsFor(b);if(eatAct==='sell')initSell();$('f_eqty').placeholder=b.unit==='шт'?'1':'300';syncEat()}
   else if(id==='f_unit')syncBuy();
   else if(id==='f_name')prefillBuy();
   else if(id==='f_fav')syncFavBox();
